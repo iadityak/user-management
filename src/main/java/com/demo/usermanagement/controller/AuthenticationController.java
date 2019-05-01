@@ -2,6 +2,9 @@ package com.demo.usermanagement.controller;
 
 import static com.demo.usermanagement.model.Constants.TOKEN_PREFIX;
 
+import java.time.LocalDate;
+import java.util.Date;
+
 import javax.servlet.http.HttpServletRequest;
 
 import org.springframework.beans.factory.annotation.Autowired;
@@ -17,6 +20,7 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestMethod;
 import org.springframework.web.bind.annotation.RestController;
 
+import com.demo.usermanagement.config.BlacklistToken;
 import com.demo.usermanagement.config.JwtTokenUtil;
 import com.demo.usermanagement.model.ApiResponse;
 import com.demo.usermanagement.model.AuthToken;
@@ -37,6 +41,9 @@ public class AuthenticationController {
 
     @Autowired
     private UserService userService;
+    
+    @Autowired
+    private BlacklistToken blacklistToken;
 
     @RequestMapping(value = "/generate-token", method = RequestMethod.POST)
     public ApiResponse<AuthToken> register(@RequestBody LoginUser loginUser) throws AuthenticationException {
@@ -57,7 +64,13 @@ public class AuthenticationController {
     	String authToken = null;
     	if (Authorization != null && Authorization.startsWith(TOKEN_PREFIX)) {
             authToken = Authorization.replace(TOKEN_PREFIX,"");
-            System.out.println(authToken);
+            Date dateofExpiry = jwtTokenUtil.getExpirationDateFromToken(authToken);
+            Date date = new Date();
+            Long TTL = dateofExpiry.getTime()-date.getTime();
+            System.out.println(date);
+            System.out.println(dateofExpiry);
+            System.out.println(TTL);
+            blacklistToken.setToken(authToken, TTL);
             return new ApiResponse<>(200, "success", "User Logged Out Successfully!");
     	}
     	else
